@@ -25,7 +25,7 @@ class _LoginScreenState extends State<LoginScreen> {
         );
         if (!mounted) return;
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          Navigator.pushReplacementNamed(context, '/main'); // ✅ ĐÃ SỬA
+          Navigator.pushReplacementNamed(context, '/main'); 
         });
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(

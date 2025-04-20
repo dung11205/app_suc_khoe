@@ -16,19 +16,24 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _screens = const [
     HomeScreen(),
-    NotificationScreen(),  // Tạm thời giữ nguyên, bạn có thể đổi tên theo đúng vai trò
-    NotificationScreen(),  // Thêm đúng màn hình "Lịch hẹn" nếu có
+    NotificationScreen(),
+    NotificationScreen(), // Tạm thời dùng lại
     ProfileScreen(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_getAppBarTitle(_currentIndex)),
-        centerTitle: true,
+      appBar: (_currentIndex == 1 || _currentIndex == 2)
+          ? AppBar(
+              title: Text(_getAppBarTitle(_currentIndex)),
+              centerTitle: true,
+            )
+          : null,
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
+        child: _screens[_currentIndex],
       ),
-      body: _screens[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         type: BottomNavigationBarType.fixed,
@@ -40,22 +45,10 @@ class _MainScreenState extends State<MainScreen> {
           });
         },
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Trang chủ',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today),
-            label: 'Lịch hẹn',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.notifications),
-            label: 'Thông báo',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Cá nhân',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Trang chủ'),
+          BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Lịch hẹn'),
+          BottomNavigationBarItem(icon: Icon(Icons.notifications), label: 'Thông báo'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Cá nhân'),
         ],
       ),
     );
@@ -63,14 +56,10 @@ class _MainScreenState extends State<MainScreen> {
 
   String _getAppBarTitle(int index) {
     switch (index) {
-      case 0:
-        return 'Trang chủ';
       case 1:
         return 'Lịch hẹn';
       case 2:
         return 'Thông báo';
-      case 3:
-        return 'Cá nhân';
       default:
         return '';
     }
