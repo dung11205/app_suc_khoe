@@ -30,10 +30,20 @@ class AuthService {
     }
   }
 
-  // Đăng nhập bằng Google
+  // Đăng nhập bằng Google (for mobile platforms)
   Future<User?> signInWithGoogle() async {
     try {
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      final GoogleSignIn googleSignIn = GoogleSignIn(
+        clientId: '938119019838-udg4a9cqcteti85l0c5p80i5psuiimaj.apps.googleusercontent.com',
+        scopes: [
+          'email',
+          'profile',
+          'https://www.googleapis.com/auth/userinfo.email',
+          'https://www.googleapis.com/auth/userinfo.profile',
+        ],
+      );
+      
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
       if (googleUser == null) return null;
 
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;

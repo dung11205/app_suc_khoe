@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:health_apps/services/auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -9,11 +10,12 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final TextEditingController _fullNameController = TextEditingController(); // Thêm controller họ tên
+  final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  final AuthService _authService = AuthService();
   bool _obscurePassword = true;
   bool _isLoading = false;
 
@@ -28,19 +30,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       setState(() => _isLoading = true);
       try {
-        UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-          email: _emailController.text,
-          password: _passwordController.text,
+        UserCredential userCredential = await FirebaseAuth.instance
+            .createUserWithEmailAndPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
         );
 
-        // ✅ Cập nhật họ tên vào user profile
-        await userCredential.user!.updateDisplayName(_fullNameController.text);
-
-        if (!mounted) return;
-        Navigator.pushReplacementNamed(context, '/home');
-      } catch (e) {
+        // Hiển thị thông báo đăng ký thành công
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Đăng ký thất bại: ${e.toString()}')),
+          const SnackBar(content: Text("Đã đăng ký thành công, hãy đăng nhập")),
+        );
+
+        // Đăng xuất ngay lập tức để reset trạng thái
+        await FirebaseAuth.instance.signOut();
+
+        // Chuyển sang màn hình đăng nhập ngay lập tức
+        if (!mounted) return;
+        Navigator.pushReplacementNamed(context, '/login');
+      } on FirebaseAuthException catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Đăng ký thất bại: ${e.message}")),
         );
       } finally {
         setState(() => _isLoading = false);
@@ -86,54 +95,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       const Text("Đăng ký",
                           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 16),
-                      _buildTextField(
-                        controller: _fullNameController,
-                        hintText: 'Họ tên',
-                        icon: Icons.person,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return "Vui lòng nhập họ tên";
-                          }
-                          return null;
-                        },
-                      ),
+                      _buildTextField(controller: _fullNameController, hintText: "Họ và tên", icon: Icons.person),
                       const SizedBox(height: 12),
-                      _buildTextField(
-                        controller: _emailController,
-                        hintText: 'Email',
-                        icon: Icons.email,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return "Vui lòng nhập email";
-                          } else if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                            return "Email không hợp lệ";
-                          }
-                          return null;
-                        },
-                      ),
+                      _buildTextField(controller: _emailController, hintText: "Email", icon: Icons.email),
                       const SizedBox(height: 12),
                       _buildTextField(
                         controller: _passwordController,
-                        hintText: 'Mật khẩu',
+                        hintText: "Mật khẩu",
                         icon: Icons.lock,
                         isPassword: true,
                         obscureText: _obscurePassword,
-                        toggleObscure: () =>
-                            setState(() => _obscurePassword = !_obscurePassword),
-                        validator: (value) =>
-                            value!.length < 6 ? "Mật khẩu tối thiểu 6 ký tự" : null,
+                        toggleObscure: () => setState(() => _obscurePassword = !_obscurePassword),
                       ),
                       const SizedBox(height: 12),
                       _buildTextField(
                         controller: _confirmPasswordController,
-                        hintText: 'Xác nhận mật khẩu',
+                        hintText: "Xác nhận mật khẩu",
                         icon: Icons.lock_outline,
                         isPassword: true,
                         obscureText: _obscurePassword,
-                        toggleObscure: () =>
-                            setState(() => _obscurePassword = !_obscurePassword),
-                        validator: (value) =>
-                            value!.isEmpty ? "Vui lòng xác nhận mật khẩu" : null,
+                        toggleObscure: () => setState(() => _obscurePassword = !_obscurePassword),
                       ),
                       const SizedBox(height: 24),
                       _buildGradientButton(),
@@ -147,13 +128,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     const Text("Bạn đã có tài khoản? "),
                     GestureDetector(
                       onTap: () => Navigator.pushNamed(context, '/login'),
-                      child: const Text("Đăng nhập",
-                          style: TextStyle(color: Colors.blue)),
+                      child: const Text("Đăng nhập", style: TextStyle(color: Colors.blue)),
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
-                const Text("Hotline 19009095", style: TextStyle(color: Colors.blue)),
               ],
             ),
           ),
@@ -169,19 +147,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
     bool isPassword = false,
     bool obscureText = false,
     VoidCallback? toggleObscure,
-    String? Function(String?)? validator,
   }) {
     return TextFormField(
       controller: controller,
       obscureText: obscureText,
-      validator: validator,
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return "Vui lòng nhập $hintText";
+        }
+        return null;
+      },
       decoration: InputDecoration(
         prefixIcon: Icon(icon),
         suffixIcon: isPassword
             ? IconButton(
-                icon: Icon(
-                  obscureText ? Icons.visibility_off : Icons.visibility,
-                ),
+                icon: Icon(obscureText ? Icons.visibility_off : Icons.visibility),
                 onPressed: toggleObscure,
               )
             : null,
@@ -201,28 +181,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
         onPressed: _isLoading ? null : _register,
         style: ElevatedButton.styleFrom(
           padding: EdgeInsets.zero,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(28),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
           elevation: 0,
         ),
         child: Ink(
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF008DFF), Color(0xFF4FC1FF)],
-            ),
+            gradient: const LinearGradient(colors: [Color(0xFF008DFF), Color(0xFF4FC1FF)]),
             borderRadius: BorderRadius.circular(28),
           ),
           child: Center(
             child: _isLoading
                 ? const CircularProgressIndicator(color: Colors.white)
-                : const Text(
-                    'Đăng ký',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
+                : const Text("Đăng ký", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           ),
         ),
       ),

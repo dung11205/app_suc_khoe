@@ -1,7 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-
 import 'firebase_options.dart';
 import 'package:health_apps/screens/login_screen.dart' as login;
 import 'package:health_apps/screens/register_screen.dart' as register;
@@ -16,6 +15,8 @@ void main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    // Đảm bảo đăng xuất khi khởi động ứng dụng
+    await FirebaseAuth.instance.signOut();
   } catch (e) {
     print('Lỗi khởi tạo Firebase: $e');
   }
@@ -34,20 +35,7 @@ class MyApp extends StatelessWidget {
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       debugShowCheckedModeBanner: false,
-      home: StreamBuilder<User?>(
-        stream: FirebaseAuth.instance.authStateChanges(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            );
-          }
-          if (snapshot.hasData) {
-            return const MainScreen(); // 👈 Đúng màn có BottomNavigationBar
-          }
-          return const login.LoginScreen();
-        },
-      ),
+      initialRoute: '/login', // Đảm bảo khởi động từ màn hình đăng nhập
       routes: {
         '/login': (context) => const login.LoginScreen(),
         '/register': (context) => const register.RegisterScreen(),
@@ -56,6 +44,7 @@ class MyApp extends StatelessWidget {
         '/notification': (context) => const NotificationScreen(),
         '/profile': (context) => const ProfileScreen(),
       },
+      home: const login.LoginScreen(), // Bỏ StreamBuilder tạm thời để kiểm tra
     );
   }
 }

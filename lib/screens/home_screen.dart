@@ -42,7 +42,7 @@ class HomeScreen extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
-              )
+              ),
             ],
           ),
           const SizedBox(height: 24),
@@ -179,11 +179,7 @@ class HomeScreen extends StatelessWidget {
           child: FaIcon(icon, size: 26, color: Colors.blue),
         ),
         const SizedBox(height: 8),
-        Text(
-          label,
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 13, color: Colors.black),
-        ),
+        Text(label, textAlign: TextAlign.center),
       ],
     );
   }
