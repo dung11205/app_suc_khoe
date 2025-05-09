@@ -1,15 +1,53 @@
+import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  _ProfileScreenState createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  String? _avatarBase64; // Lưu ảnh đại diện dưới dạng Base64
+  String? _name; // Lưu tên người dùng
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  // Tải thông tin người dùng từ Firestore
+  Future<void> _loadUserData() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      try {
+        final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        final data = doc.data();
+
+        setState(() {
+          _avatarBase64 = data?['avatar'];
+          _name = data?['name'] ?? user.displayName ?? 'Tên người dùng';
+        });
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Lỗi khi tải dữ liệu: $e')),
+          );
+        }
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
-      // Nếu không có người dùng, quay về màn hình đăng nhập
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
       });
@@ -18,8 +56,15 @@ class ProfileScreen extends StatelessWidget {
       );
     }
 
-    final fullName = user.displayName ?? 'Tên người dùng';
     final email = user.email ?? 'Không có email';
+    ImageProvider? avatarImage;
+    if (_avatarBase64 != null) {
+      try {
+        avatarImage = MemoryImage(base64Decode(_avatarBase64!));
+      } catch (e) {
+        avatarImage = null;
+      }
+    }
 
     return Scaffold(
       backgroundColor: Colors.grey[200],
@@ -47,10 +92,13 @@ class ProfileScreen extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const CircleAvatar(
+                // Hiển thị ảnh đại diện
+                CircleAvatar(
                   radius: 30,
-                  backgroundColor: Colors.white,
-                  child: Icon(Icons.person, size: 35, color: Colors.blueAccent),
+                  backgroundImage: avatarImage,
+                  child: avatarImage == null
+                      ? const Icon(Icons.person, size: 35, color: Colors.blueAccent)
+                      : null,
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -58,7 +106,7 @@ class ProfileScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        fullName,
+                        _name ?? 'Tên người dùng',
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -79,7 +127,6 @@ class ProfileScreen extends StatelessWidget {
                 IconButton(
                   icon: const Icon(Icons.logout, color: Colors.white),
                   onPressed: () async {
-                    // Hiển thị dialog xác nhận
                     final confirm = await showDialog<bool>(
                       context: context,
                       builder: (context) => AlertDialog(
@@ -129,7 +176,37 @@ class ProfileScreen extends StatelessWidget {
                     title: Text(item.title),
                     trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                     onTap: () {
-                      // TODO: xử lý khi nhấn vào menu
+                      switch (item.title) {
+                        case 'Thông tin cá nhân':
+                          Navigator.pushNamed(context, '/edit-personal');
+                          break;
+                        case 'Thành viên gia đình':
+                          Navigator.pushNamed(context, '/family-members');
+                          break;
+                        case 'Nơi đã đến':
+                          Navigator.pushNamed(context, '/visited-places');
+                          break;
+                        case 'Lịch sử đặt khám':
+                          Navigator.pushNamed(context, '/appointment-history');
+                          break;
+                        case 'Hộ chiếu vắc-xin':
+                          Navigator.pushNamed(context, '/vaccine-passport');
+                          break;
+                        case 'Giới thiệu':
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Chức năng Giới thiệu chưa được triển khai'),
+                            ),
+                          );
+                          break;
+                        case 'Cài đặt':
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Chức năng Cài đặt chưa được triển khai'),
+                            ),
+                          );
+                          break;
+                      }
                     },
                   );
                 },
