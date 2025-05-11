@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
 import 'home_screen.dart';
+import '../profile_screen/appointment_screen.dart';
 import 'notification_screen.dart';
 import 'profile_screen.dart';
 
@@ -16,8 +18,8 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _screens = const [
     HomeScreen(),
+    AppointmentScreen(),
     NotificationScreen(),
-    NotificationScreen(), 
     ProfileScreen(),
   ];
 
@@ -27,7 +29,7 @@ class _MainScreenState extends State<MainScreen> {
       appBar: (_currentIndex == 1 || _currentIndex == 2)
           ? AppBar(
               title: Text(_getAppBarTitle(_currentIndex)),
-              centerTitle: true,
+              automaticallyImplyLeading: false,
             )
           : null,
       body: AnimatedSwitcher(
@@ -57,9 +59,9 @@ class _MainScreenState extends State<MainScreen> {
   String _getAppBarTitle(int index) {
     switch (index) {
       case 1:
-        return 'Lịch hẹn';
+        return '';
       case 2:
-        return 'Thông báo';
+        return '';
       default:
         return '';
     }
