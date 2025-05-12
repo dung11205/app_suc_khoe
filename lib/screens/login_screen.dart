@@ -15,16 +15,18 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   final AuthService _authService = AuthService();
+
   bool _obscurePassword = true;
   bool _isLoading = false;
 
+  /// Đăng nhập bằng Email & Mật khẩu
   void _login() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
       try {
         await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: _emailController.text,
-          password: _passwordController.text,
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
         );
         if (!mounted) return;
         Navigator.pushReplacementNamed(context, '/main');
@@ -38,6 +40,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  /// Đăng nhập bằng Google
   void _signInWithGoogle() async {
     setState(() => _isLoading = true);
     try {
@@ -81,34 +84,35 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  /// Giao diện chính
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF008DFF), Color(0xFF4FC1FF)],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
+          // Nền gradient
+            Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF0098FF), Color(0xFF4FC1FF)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
               ),
             ),
-          ),
+
+          // Nội dung chính
           SafeArea(
             child: Column(
               children: [
                 const SizedBox(height: 24),
                 Column(
                   children: [
-                    Image.asset('assets/logo.png', height: 100),
+                    Image.asset('assets/a2.png', height: 100),
                     const SizedBox(height: 10),
-                    const Text(
-                      "SSKĐT",
-                      style: TextStyle(
-                          fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white),
-                    ),
+                    const Text("SSKĐT",
+                        style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white)),
                     const Text("Sổ sức khỏe điện tử",
                         style: TextStyle(fontSize: 16, color: Colors.white)),
                   ],
@@ -139,7 +143,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                     validator: (value) {
                                       if (value == null || value.isEmpty) {
                                         return "Vui lòng nhập Email";
-                                      } else if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                                      } else if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                                          .hasMatch(value)) {
                                         return "Email không hợp lệ";
                                       }
                                       return null;
@@ -153,19 +158,20 @@ class _LoginScreenState extends State<LoginScreen> {
                                     isPassword: true,
                                     obscureText: _obscurePassword,
                                     toggleObscure: () => setState(() => _obscurePassword = !_obscurePassword),
-                                    validator: (value) => value!.isEmpty ? "Vui lòng nhập mật khẩu" : null,
+                                    validator: (value) =>
+                                        value!.isEmpty ? "Vui lòng nhập mật khẩu" : null,
                                   ),
                                   const SizedBox(height: 12),
                                   Align(
                                     alignment: Alignment.centerRight,
                                     child: GestureDetector(
                                       onTap: () {},
-                                      child: const Text("Quên mật khẩu?", style: TextStyle(color: Colors.blue)),
+                                      child: const Text("Quên mật khẩu?",
+                                          style: TextStyle(color: Colors.blue)),
                                     ),
                                   ),
                                   const SizedBox(height: 24),
                                   _buildGradientButton(),
-                                  const SizedBox(height: 16),
                                   const SizedBox(height: 20),
                                   _buildGoogleSignInButton(),
                                 ],
@@ -194,7 +200,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ),
-
               ],
             ),
           ),
@@ -203,6 +208,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  /// TextField tái sử dụng
   Widget _buildTextField({
     required TextEditingController controller,
     required String hintText,
@@ -232,6 +238,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  /// Nút đăng nhập chính
   Widget _buildGradientButton() {
     return SizedBox(
       width: double.infinity,
@@ -267,6 +274,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  /// Nút đăng nhập Google
   Widget _buildGoogleSignInButton() {
     return SizedBox(
       width: double.infinity,

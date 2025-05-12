@@ -46,6 +46,8 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
+        fontFamily: 'Inter', // Thêm font Inter vào ThemeData
+        fontFamilyFallback: const ['Roboto', 'sans-serif'], // Font dự phòng
       ),
       debugShowCheckedModeBanner: false,
 
@@ -61,7 +63,7 @@ class MyApp extends StatelessWidget {
       ],
 
       initialRoute: '/login',
-            routes: {
+      routes: {
         '/login': (context) => const login.LoginScreen(),
         '/register': (context) => const register.RegisterScreen(),
         '/main': (context) => const MainScreen(),
