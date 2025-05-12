@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class AIService {
-  static const String _apiKey = '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';
+  static const String _apiKey = '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';
   static const String _endpoint = 'https://openrouter.ai/api/v1/chat/completions';
 
   static Future<String> getGPTReply(String message) async {
