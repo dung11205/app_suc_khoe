@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import '../services/user_service.dart'; // Import UserService
 
 class EditPersonalInfoScreen extends StatefulWidget {
   const EditPersonalInfoScreen({super.key});
@@ -22,6 +23,7 @@ class _EditPersonalInfoScreenState extends State<EditPersonalInfoScreen> {
   final _emailController = TextEditingController();
   final _ageController = TextEditingController();
   final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
+  final UserService _userService = UserService(); // Khởi tạo UserService
   String? _selectedGender;
   bool _isSaving = false;
   File? _avatarFile;
@@ -35,23 +37,27 @@ class _EditPersonalInfoScreenState extends State<EditPersonalInfoScreen> {
   }
 
   Future<void> _loadUserData() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
     try {
-      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-      final data = doc.data() ?? {};
+      final userData = await _userService.getUserData();
+      if (userData == null) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Vui lòng đăng nhập để tiếp tục')),
+          );
+        }
+        return;
+      }
 
       setState(() {
-        _nameController.text = data['name'] ?? user.displayName ?? '';
-        _dobController.text = data['dob'] ?? '';
-        _phoneController.text = data['phone'] ?? '';
-        _idController.text = data['id'] ?? '';
-        _emailController.text = data['email'] ?? user.email ?? '';
-        _ageController.text = data['age']?.toString() ?? '';
-        _originalEmail = user.email ?? '';
-        _selectedGender = data['gender'];
-        _avatarBase64 = data['avatar'];
+        _nameController.text = userData['name'] ?? '';
+        _dobController.text = userData['dob'] ?? '';
+        _phoneController.text = userData['phone'] ?? '';
+        _idController.text = userData['id'] ?? '';
+        _emailController.text = userData['email'] ?? '';
+        _ageController.text = userData['age']?.toString() ?? '';
+        _originalEmail = _emailController.text;
+        _selectedGender = userData['gender'];
+        _avatarBase64 = userData['avatar'];
       });
     } catch (e) {
       if (context.mounted) {
@@ -176,8 +182,8 @@ class _EditPersonalInfoScreenState extends State<EditPersonalInfoScreen> {
         return; // Chờ người dùng xác minh email trước khi lưu toàn bộ thông tin
       }
 
-      // Lưu thông tin vào Firestore
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+      // Dữ liệu cần lưu
+      final userData = {
         'name': _nameController.text.trim(),
         'dob': _dobController.text.trim(),
         'phone': _phoneController.text.trim(),
@@ -186,16 +192,19 @@ class _EditPersonalInfoScreenState extends State<EditPersonalInfoScreen> {
         'age': _ageController.text.trim(),
         'gender': _selectedGender,
         'avatar': _avatarBase64,
-      }, SetOptions(merge: true));
+      };
 
-      // Cập nhật displayName
+      // Sử dụng UserService để lưu thông tin vào Firestore
+      await _userService.updateUserData(user.uid, userData);
+
+      // Cập nhật displayName trong Firebase Auth
       await user.updateDisplayName(_nameController.text.trim());
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Đã lưu thông tin cá nhân thành công')),
         );
-        Navigator.pop(context);
+        Navigator.pop(context, true); // Trả về true để báo hiệu lưu thành công
       }
     } catch (e) {
       if (context.mounted) {
@@ -203,9 +212,9 @@ class _EditPersonalInfoScreenState extends State<EditPersonalInfoScreen> {
           SnackBar(content: Text('Lỗi khi lưu thông tin: $e')),
         );
       }
+    } finally {
+      setState(() => _isSaving = false);
     }
-
-    setState(() => _isSaving = false);
   }
 
   @override

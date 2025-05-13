@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class AIService {
-  static const String _apiKey = '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';
+  static const String _apiKey = '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';
   static const String _endpoint = 'https://openrouter.ai/api/v1/chat/completions';
 
   static Future<String> getGPTReply(String message) async {
@@ -14,7 +14,7 @@ class AIService {
           'Authorization': 'Bearer $_apiKey',
         },
         body: jsonEncode({
-          "model": "mistralai/mistral-medium",
+          "model": "nousresearch/deephermes-3-mistral-24b-preview:free",
           "messages": [
             {
               "role": "system",
