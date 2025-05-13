@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import 'home_screen.dart';
-import '../profile_screen/appointment_screen.dart';
+import 'appointment_screen.dart';
 import 'notification_screen.dart';
 import 'profile_screen.dart';
 

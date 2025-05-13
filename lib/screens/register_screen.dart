@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:health_apps/screens/login_screen.dart';
 import 'package:health_apps/services/auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -19,12 +20,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscurePassword = true;
   bool _isLoading = false;
 
+  // Biến để theo dõi thao tác trượt
+  double _dragStartX = 0.0;
+  double _dragDeltaX = 0.0;
+
+  @override
+  void dispose() {
+    _fullNameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
   void _register() async {
     if (_formKey.currentState!.validate()) {
       if (_passwordController.text != _confirmPasswordController.text) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Mật khẩu xác nhận không khớp")),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Mật khẩu xác nhận không khớp")),
+          );
+        }
         return;
       }
 
@@ -35,19 +51,41 @@ class _RegisterScreenState extends State<RegisterScreen> {
           password: _passwordController.text.trim(),
         );
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Đã đăng ký thành công, hãy đăng nhập")),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Đã đăng ký thành công, hãy đăng nhập")),
+          );
+        }
 
         await FirebaseAuth.instance.signOut();
         if (!mounted) return;
-        Navigator.pushReplacementNamed(context, '/login');
-      } on FirebaseAuthException catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Đăng ký thất bại: ${e.message}")),
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (_, __, ___) => const LoginScreen(),
+            transitionsBuilder: (_, animation, __, child) {
+              const begin = Offset(-1.0, 0.0);
+              const end = Offset.zero;
+              const curve = Curves.easeInOut;
+              var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+              var offsetAnimation = animation.drive(tween);
+              return SlideTransition(
+                position: offsetAnimation,
+                child: child,
+              );
+            },
+          ),
         );
+      } on FirebaseAuthException catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Đăng ký thất bại: ${e.message}")),
+          );
+        }
       } finally {
-        setState(() => _isLoading = false);
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
       }
     }
   }
@@ -56,98 +94,128 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF008DFF),
-      body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 24),
-            Column(
-              children: [
-                Image.asset('assets/logo.png', height: 80),
-                const SizedBox(height: 8),
-                const Text("SSKĐT", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blue)),
-                const Text("Sổ sức khỏe điện tử", style: TextStyle(fontSize: 16, color: Colors.black54)),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
-                ),
+      body: GestureDetector(
+        // Phát hiện thao tác trượt ngang
+        onHorizontalDragStart: (details) {
+          _dragStartX = details.globalPosition.dx;
+          _dragDeltaX = 0.0;
+        },
+        onHorizontalDragUpdate: (details) {
+          _dragDeltaX = details.globalPosition.dx - _dragStartX;
+        },
+        onHorizontalDragEnd: (details) {
+          // Nếu trượt từ phải sang trái (deltaX > 100) thì quay lại LoginScreen
+          if (_dragDeltaX > 100) {
+            if (mounted) {
+              Navigator.pop(context);
+            }
+          }
+        },
+        child: SafeArea(
+          child: CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              SliverFillRemaining(
+                hasScrollBody: false,
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Expanded(
-                      child: SingleChildScrollView(
-                        child: Form(
-                          key: _formKey,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              const Text("Đăng ký",
-                                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                              const SizedBox(height: 16),
-                              _buildTextField(
-                                controller: _fullNameController,
-                                hintText: "Họ và tên",
-                                icon: Icons.person,
-                              ),
-                              const SizedBox(height: 12),
-                              _buildTextField(
-                                controller: _emailController,
-                                hintText: "Email",
-                                icon: Icons.email,
-                              ),
-                              const SizedBox(height: 12),
-                              _buildTextField(
-                                controller: _passwordController,
-                                hintText: "Mật khẩu",
-                                icon: Icons.lock,
-                                isPassword: true,
-                                obscureText: _obscurePassword,
-                                toggleObscure: () => setState(() => _obscurePassword = !_obscurePassword),
-                              ),
-                              const SizedBox(height: 12),
-                              _buildTextField(
-                                controller: _confirmPasswordController,
-                                hintText: "Xác nhận mật khẩu",
-                                icon: Icons.lock_outline,
-                                isPassword: true,
-                                obscureText: _obscurePassword,
-                                toggleObscure: () => setState(() => _obscurePassword = !_obscurePassword),
-                              ),
-                              const SizedBox(height: 24),
-                              _buildGradientButton(),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 24),
                     Column(
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                        Image.asset('assets/a2.png', height: 80),
+                        const SizedBox(height: 8),
+                        const Text("SSKĐT", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
+                        const Text("Sổ sức khỏe điện tử", style: TextStyle(fontSize: 16, color: Colors.black54)),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text("Bạn đã có tài khoản? "),
-                            GestureDetector(
-                              onTap: () => Navigator.pushNamed(context, '/login'),
-                              child: const Text("Đăng nhập", style: TextStyle(color: Colors.blue)),
+                            Expanded(
+                              child: SingleChildScrollView(
+                                child: Form(
+                                  key: _formKey,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    children: [
+                                      const Text("Đăng ký",
+                                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                                      const SizedBox(height: 16),
+                                      _buildTextField(
+                                        controller: _fullNameController,
+                                        hintText: "Họ và tên",
+                                        icon: Icons.person,
+                                      ),
+                                      const SizedBox(height: 12),
+                                      _buildTextField(
+                                        controller: _emailController,
+                                        hintText: "Email",
+                                        icon: Icons.email,
+                                      ),
+                                      const SizedBox(height: 12),
+                                      _buildTextField(
+                                        controller: _passwordController,
+                                        hintText: "Mật khẩu",
+                                        icon: Icons.lock,
+                                        isPassword: true,
+                                        obscureText: _obscurePassword,
+                                        toggleObscure: () => setState(() => _obscurePassword = !_obscurePassword),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      _buildTextField(
+                                        controller: _confirmPasswordController,
+                                        hintText: "Xác nhận mật khẩu",
+                                        icon: Icons.lock_outline,
+                                        isPassword: true,
+                                        obscureText: _obscurePassword,
+                                        toggleObscure: () => setState(() => _obscurePassword = !_obscurePassword),
+                                      ),
+                                      const SizedBox(height: 24),
+                                      _buildGradientButton(),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 30),
+                            Column(
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Text("Bạn đã có tài khoản? "),
+                                    GestureDetector(
+                                      onTap: () {
+                                        if (mounted) {
+                                          Navigator.pop(context);
+                                        }
+                                      },
+                                      child: const Text("Đăng nhập", style: TextStyle(color: Colors.blue)),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 10),
+                                const Text("Hotline 19009095", style: TextStyle(color: Colors.blue)),
+                              ],
                             ),
                           ],
                         ),
-                        const SizedBox(height: 10),
-                        const Text("Hotline 19009095", style: TextStyle(color: Colors.blue)),
-                      ],
+                      ),
                     ),
                   ],
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

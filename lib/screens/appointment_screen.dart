@@ -21,79 +21,95 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
       );
     }
 
-    return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAppointmentDialog(),
-        child: const Icon(Icons.add),
-      ),
-      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: _service.getCurrentAppointmentsStream(),
-        builder: (_, snapshot) {
-          if (!snapshot.hasData) {
-            debugPrint("No data yet, loading...");
-            return const Center(child: CircularProgressIndicator());
-          }
+    return ScrollConfiguration(
+      behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false), // Tắt thanh cuộn
+      child: Scaffold(
+        floatingActionButton: FloatingActionButton(
+          onPressed: () => _showAppointmentDialog(),
+          child: const Icon(Icons.add),
+        ),
+        body: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              stream: _service.getCurrentAppointmentsStream(),
+              builder: (_, snapshot) {
+                if (!snapshot.hasData) {
+                  debugPrint("No data yet, loading...");
+                  return const SliverToBoxAdapter(
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
 
-          if (snapshot.hasError) {
-            debugPrint("StreamBuilder error: ${snapshot.error}");
-            return Center(child: Text("Lỗi: ${snapshot.error}"));
-          }
+                if (snapshot.hasError) {
+                  debugPrint("StreamBuilder error: ${snapshot.error}");
+                  return SliverToBoxAdapter(
+                    child: Center(child: Text("Lỗi: ${snapshot.error}")),
+                  );
+                }
 
-          final docs = snapshot.data!.docs;
-          debugPrint("Received ${docs.length} current appointments");
-          for (var doc in docs) {
-            final data = doc.data();
-            final date = (data['appointmentDate'] as Timestamp).toDate();
-            debugPrint("Appointment: ${data['doctorName']}, Date: $date");
-          }
+                final docs = snapshot.data!.docs;
+                debugPrint("Received ${docs.length} current appointments");
+                for (var doc in docs) {
+                  final data = doc.data();
+                  final date = (data['appointmentDate'] as Timestamp).toDate();
+                  debugPrint("Appointment: ${data['doctorName']}, Date: $date");
+                }
 
-          if (docs.isEmpty) {
-            return const Center(child: Text("Chưa có lịch hẹn nào."));
-          }
+                if (docs.isEmpty) {
+                  return const SliverToBoxAdapter(
+                    child: Center(child: Text("Chưa có lịch hẹn nào.")),
+                  );
+                }
 
-          return ListView.builder(
-            itemCount: docs.length,
-            itemBuilder: (_, i) {
-              final data = docs[i].data();
-              final date = (data['appointmentDate'] as Timestamp).toDate();
-              return Card(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                color: Colors.teal[50],
-                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                elevation: 4,
-                child: ListTile(
-                  contentPadding: const EdgeInsets.all(12),
-                  leading: const Icon(Icons.calendar_today, color: Colors.teal),
-                  title: Text(
-                    "👨‍⚕️ Bác sĩ: ${data['doctorName']}",
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                return SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final data = docs[index].data();
+                      final date = (data['appointmentDate'] as Timestamp).toDate();
+                      return Card(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        color: Colors.teal[50],
+                        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        elevation: 4,
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.all(12),
+                          leading: const Icon(Icons.calendar_today, color: Colors.teal),
+                          title: Text(
+                            "👨‍⚕️ Bác sĩ: ${data['doctorName']}",
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 4),
+                              Text("🗓 Ngày: ${DateFormat('dd/MM/yyyy HH:mm').format(date)}"),
+                              Text("💬 Triệu chứng: ${data['symptoms']}"),
+                            ],
+                          ),
+                          onTap: () => _showAppointmentDialog(
+                            docId: docs[index].id,
+                            existingDoctor: data['doctorName'],
+                            existingSymptoms: data['symptoms'],
+                            existingDateTime: date,
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed: () => _service.deleteAppointment(
+                              docId: docs[index].id,
+                              context: context,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                    childCount: docs.length,
                   ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 4),
-                      Text("🗓 Ngày: ${DateFormat('dd/MM/yyyy HH:mm').format(date)}"),
-                      Text("💬 Triệu chứng: ${data['symptoms']}"),
-                    ],
-                  ),
-                  onTap: () => _showAppointmentDialog(
-                    docId: docs[i].id,
-                    existingDoctor: data['doctorName'],
-                    existingSymptoms: data['symptoms'],
-                    existingDateTime: date,
-                  ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () => _service.deleteAppointment(
-                      docId: docs[i].id,
-                      context: context,
-                    ),
-                  ),
-                ),
-              );
-            },
-          );
-        },
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -232,7 +248,7 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
             child: const Text("Lưu"),
           ),
         ],
-      ), 
+      ),
     );
   }
 }

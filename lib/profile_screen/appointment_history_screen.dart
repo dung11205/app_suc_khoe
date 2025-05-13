@@ -14,18 +14,27 @@ class AppointmentHistoryScreen extends StatelessWidget {
       return Scaffold(
         appBar: AppBar(
           title: const Text("Lịch Sử Khám"),
-          backgroundColor: Colors.blueAccent,
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.blueAccent, Colors.lightBlue],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+          ),
           elevation: 0,
         ),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.lock, size: 50, color: Colors.grey),
-              const SizedBox(height: 16),
+              const Icon(Icons.lock, size: 60, color: Colors.grey),
+              const SizedBox(height: 20),
               Text(
                 "Bạn cần đăng nhập để xem lịch sử",
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.grey),
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Colors.grey),
+                textAlign: TextAlign.center,
               ),
             ],
           ),
@@ -33,122 +42,152 @@ class AppointmentHistoryScreen extends StatelessWidget {
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Lịch Sử Khám"),
-        backgroundColor: Colors.blueAccent,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => _service.showSnack(context, "Đã làm mới danh sách lịch sử"),
-            tooltip: "Làm mới",
+    return ScrollConfiguration(
+      behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false), // Tắt thanh cuộn
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text("Lịch Sử Khám"),
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.blueAccent, Colors.lightBlue],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
           ),
-        ],
-      ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: _service.getAppointmentHistoryStream(),
-        builder: (_, snapshot) {
-          if (snapshot.hasError) {
-            debugPrint("StreamBuilder error: ${snapshot.error}");
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 50, color: Colors.redAccent),
-                  const SizedBox(height: 16),
-                  Text(
-                    "Đã xảy ra lỗi: ${snapshot.error}",
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.redAccent),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          if (!snapshot.hasData) {
-            debugPrint("No data yet, loading...");
-            return const Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.blueAccent),
-              ),
-            );
-          }
-
-          final docs = snapshot.data!.docs;
-          debugPrint("Received ${docs.length} appointment history documents");
-          if (docs.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.history_toggle_off, size: 50, color: Colors.grey),
-                  const SizedBox(height: 16),
-                  Text(
-                    "Chưa có lịch sử khám.",
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.grey),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          return ListView.builder(
-            padding: const EdgeInsets.all(8),
-            itemCount: docs.length,
-            itemBuilder: (_, i) {
-              final data = docs[i].data() as Map<String, dynamic>;
-              final date = (data['appointmentDate'] as Timestamp).toDate();
-              debugPrint("Displaying appointment: ${data['doctorName']}, Date: $date");
-
-              return Card(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                color: Colors.blue[50],
-                margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                elevation: 2,
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => AppointmentDetailScreen(appointmentData: data),
+          elevation: 0,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh, color: Colors.white),
+              onPressed: () => _service.showSnack(context, "Đã làm mới danh sách lịch sử"),
+              tooltip: "Làm mới",
+            ),
+          ],
+        ),
+        body: CustomScrollView(
+          physics: const BouncingScrollPhysics(), // Hiệu ứng nảy, giới hạn cuộn khi ít dữ liệu
+          slivers: [
+            StreamBuilder<QuerySnapshot>(
+              stream: _service.getAppointmentHistoryStream(),
+              builder: (_, snapshot) {
+                if (snapshot.hasError) {
+                  debugPrint("StreamBuilder error: ${snapshot.error}");
+                  return SliverToBoxAdapter(
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.error_outline, size: 60, color: Colors.redAccent),
+                          const SizedBox(height: 20),
+                          Text(
+                            "Đã xảy ra lỗi: ${snapshot.error}",
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.redAccent),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
                       ),
-                    );
-                  },
-                  leading: CircleAvatar(
-                    backgroundColor: Colors.blueAccent.withOpacity(0.1),
-                    child: const Icon(Icons.medical_services, color: Colors.blueAccent),
-                  ),
-                  title: Text(
-                    "Bác sĩ: ${data['doctorName']}",
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blueAccent,
+                    ),
+                  );
+                }
+
+                if (!snapshot.hasData) {
+                  debugPrint("No data yet, loading...");
+                  return const SliverToBoxAdapter(
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.blueAccent),
+                      ),
+                    ),
+                  );
+                }
+
+                final docs = snapshot.data!.docs;
+                debugPrint("Received ${docs.length} appointment history documents");
+                if (docs.isEmpty) {
+                  return SliverToBoxAdapter(
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.history_toggle_off, size: 60, color: Colors.blueGrey),
+                          const SizedBox(height: 20),
+                          Text(
+                            "Chưa có lịch sử khám.",
+                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Colors.blueGrey),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            "Lịch sử sẽ hiển thị sau khi bạn hoàn thành khám.",
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                return SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final data = docs[index].data() as Map<String, dynamic>;
+                      final date = (data['appointmentDate'] as Timestamp).toDate();
+                      debugPrint("Displaying appointment: ${data['doctorName']}, Date: $date");
+
+                      return Card(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        color: Colors.blue[100],
+                        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        elevation: 4,
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.all(12),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => AppointmentDetailScreen(appointmentData: data),
+                              ),
+                            );
+                          },
+                          leading: CircleAvatar(
+                            backgroundColor: Colors.blueAccent.withOpacity(0.2),
+                            child: const Icon(Icons.medical_services, color: Colors.blueAccent),
+                          ),
+                          title: Text(
+                            "Bác sĩ: ${data['doctorName']}",
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blueAccent,
+                                ),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 6),
+                              Text(
+                                "Ngày khám: ${DateFormat('dd/MM/yyyy HH:mm').format(date)}",
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[800]),
+                              ),
+                              Text(
+                                "Triệu chứng: ${data['symptoms']}",
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[700]),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                          trailing: const Icon(Icons.arrow_forward_ios, size: 18, color: Colors.grey),
                         ),
+                      );
+                    },
+                    childCount: docs.length,
                   ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 4),
-                      Text(
-                        "Ngày khám: ${DateFormat('dd/MM/yyyy HH:mm').format(date)}",
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[700]),
-                      ),
-                      Text(
-                        "Triệu chứng: ${data['symptoms']}",
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-                ),
-              );
-            },
-          );
-        },
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -236,4 +275,4 @@ class AppointmentDetailScreen extends StatelessWidget {
       ),
     );
   }
-}
+} 

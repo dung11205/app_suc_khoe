@@ -79,7 +79,7 @@ class MyApp extends StatelessWidget {
         '/covid-certificate': (context) => const CovidCertificateScreen(),
         '/f0-consultation': (context) => const F0ConsultationScreen(),
         '/vaccine-registration': (context) => const VaccineRegistrationScreen(),
-        '/appointment-booking': (context) => const AppointmentBookingScreen(),
+        '/appointment-booking': (context) => AppointmentBookingScreen(),
         '/health-profile': (context) => const HealthProfileScreen(),
         '/vaccine-feedback': (context) => const VaccineFeedbackScreen(),
         '/more': (context) => const MoreScreen(),
