@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import '../utils/responsive_layout.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -56,6 +57,17 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
 
+    return ResponsiveLayout(
+      mobile: _buildMainContent(context, name, avatarImage, maxIconsPerRow: 3),
+      tablet: _buildMainContent(context, name, avatarImage, maxIconsPerRow: 4),
+      desktop: _buildMainContent(context, name, avatarImage, maxIconsPerRow: 6),
+    );
+  }
+
+  Widget _buildMainContent(BuildContext context, String name, ImageProvider? avatarImage,
+      {required int maxIconsPerRow}) {
+    final double iconWidth = MediaQuery.of(context).size.width / maxIconsPerRow - 32;
+
     return Scaffold(
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 32, 16, 16),
@@ -92,8 +104,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(height: 24),
-
-            // 3 nút chính
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -118,32 +128,26 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
             const SizedBox(height: 32),
-
-            // Grid icon phụ
             Container(
               decoration: BoxDecoration(
                 color: const Color(0xFFF5F7FA),
                 borderRadius: BorderRadius.circular(16),
               ),
               padding: const EdgeInsets.all(16),
-              child: GridView.count(
-                shrinkWrap: true,
-                crossAxisCount: 3,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                physics: const NeverScrollableScrollPhysics(),
+              child: Wrap(
+                spacing: 16,
+                runSpacing: 16,
                 children: [
-                  _buildSubIcon(FontAwesomeIcons.passport, 'Hộ chiếu\nvắc-xin', '/vaccine-passport'),
-                  _buildSubIcon(FontAwesomeIcons.notesMedical, 'Đăng ký\ntiêm chủng', '/vaccine-registration'),
-                  _buildSubIcon(Icons.calendar_today, 'Đặt hẹn\nkhám', '/appointment-booking'),
-                  _buildSubIcon(Icons.folder_shared, 'Hồ sơ\nsức khỏe', '/health-profile'),
-                  _buildSubIcon(Icons.report_problem, 'Phản ánh\ntiêm chủng', '/vaccine-feedback'),
-                  _buildSubIcon(Icons.more_horiz, 'Xem thêm', '/more'),
+                  _buildSubIcon(FontAwesomeIcons.passport, 'Phản ứng\nsau tiêm', '/vaccine-feedback', iconWidth),
+                  _buildSubIcon(FontAwesomeIcons.notesMedical, 'Đăng ký\ntiêm chủng', '/vaccine-registration', iconWidth),
+                  _buildSubIcon(Icons.calendar_today, 'Đặt hẹn\nkhám', '/appointment-booking', iconWidth),
+                  _buildSubIcon(Icons.folder_shared, 'Hồ sơ\nsức khỏe', '/health-profile', iconWidth),
+                  _buildSubIcon(Icons.support_agent, 'Tư vấn\ntừ xa', '/remote-consulting', iconWidth),
+                  _buildSubIcon(Icons.more_horiz, 'Xem thêm', '/more', iconWidth),
                 ],
               ),
             ),
             const SizedBox(height: 24),
-
             const Text(
               'Cẩm nang y tế',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -223,20 +227,23 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildSubIcon(IconData icon, String label, String routeName) {
+  Widget _buildSubIcon(IconData icon, String label, String routeName, double width) {
     return GestureDetector(
       onTap: () => Navigator.pushNamed(context, routeName),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircleAvatar(
-            radius: 30,
-            backgroundColor: Colors.blue.shade50,
-            child: FaIcon(icon, size: 26, color: Colors.blue),
-          ),
-          const SizedBox(height: 8),
-          Text(label, textAlign: TextAlign.center),
-        ],
+      child: SizedBox(
+        width: width,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircleAvatar(
+              radius: 30,
+              backgroundColor: Colors.blue.shade50,
+              child: FaIcon(icon, size: 26, color: Colors.blue),
+            ),
+            const SizedBox(height: 8),
+            Text(label, textAlign: TextAlign.center),
+          ],
+        ),
       ),
     );
   }

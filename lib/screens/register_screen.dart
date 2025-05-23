@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:health_apps/screens/login_screen.dart';
 import 'package:health_apps/services/auth_service.dart';
+import 'package:health_apps/services/user_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -17,10 +19,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _confirmPasswordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   final AuthService _authService = AuthService();
+  final UserService _userService = UserService();
+
   bool _obscurePassword = true;
   bool _isLoading = false;
 
-  // Biến để theo dõi thao tác trượt
   double _dragStartX = 0.0;
   double _dragDeltaX = 0.0;
 
@@ -51,13 +54,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
           password: _passwordController.text.trim(),
         );
 
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          await _userService.updateUserData(user.uid, {
+            'name': _fullNameController.text.trim(),
+            'email': _emailController.text.trim(),
+            'createdAt': Timestamp.now(),
+          });
+        }
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Đã đăng ký thành công, hãy đăng nhập")),
+            const SnackBar(content: Text("Đăng ký thành công, vui lòng đăng nhập")),
           );
         }
 
         await FirebaseAuth.instance.signOut();
+
         if (!mounted) return;
         Navigator.pushReplacement(
           context,
@@ -69,10 +82,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const curve = Curves.easeInOut;
               var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
               var offsetAnimation = animation.drive(tween);
-              return SlideTransition(
-                position: offsetAnimation,
-                child: child,
-              );
+              return SlideTransition(position: offsetAnimation, child: child);
             },
           ),
         );
@@ -95,7 +105,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF008DFF),
       body: GestureDetector(
-        // Phát hiện thao tác trượt ngang
         onHorizontalDragStart: (details) {
           _dragStartX = details.globalPosition.dx;
           _dragDeltaX = 0.0;
@@ -104,11 +113,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
           _dragDeltaX = details.globalPosition.dx - _dragStartX;
         },
         onHorizontalDragEnd: (details) {
-          // Nếu trượt từ phải sang trái (deltaX > 100) thì quay lại LoginScreen
           if (_dragDeltaX > 100) {
-            if (mounted) {
-              Navigator.pop(context);
-            }
+            if (mounted) Navigator.pop(context);
           }
         },
         child: SafeArea(
@@ -122,9 +128,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     const SizedBox(height: 24),
                     Column(
                       children: [
-                        Image.asset('assets/a2.png', height: 80),
+                        Image.asset('assets/xoa.png', height: 80),
                         const SizedBox(height: 8),
-                        const Text("SSKĐT", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
+                        const Text("SSKĐT",
+                            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
                         const Text("Sổ sức khỏe điện tử", style: TextStyle(fontSize: 16, color: Colors.black54)),
                       ],
                     ),
@@ -195,9 +202,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     const Text("Bạn đã có tài khoản? "),
                                     GestureDetector(
                                       onTap: () {
-                                        if (mounted) {
-                                          Navigator.pop(context);
-                                        }
+                                        if (mounted) Navigator.pop(context);
                                       },
                                       child: const Text("Đăng nhập", style: TextStyle(color: Colors.blue)),
                                     ),

@@ -2,10 +2,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class AIService {
-  static const String _apiKey = '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';
+  static const String _apiKey = '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';
   static const String _endpoint = 'https://openrouter.ai/api/v1/chat/completions';
 
-  static Future<String> getGPTReply(String message) async {
+  static Future<String> getGPTReply(String message) async { 
     try {
       final response = await http.post(
         Uri.parse(_endpoint),
@@ -14,7 +14,7 @@ class AIService {
           'Authorization': 'Bearer $_apiKey',
         },
         body: jsonEncode({
-          "model": "nousresearch/deephermes-3-mistral-24b-preview:free",
+          "model": "meta-llama/llama-4-scout:free",
           "messages": [
             {
               "role": "system",
@@ -31,11 +31,11 @@ class AIService {
         final data = json.decode(utf8.decode(response.bodyBytes));
         return data['choices'][0]['message']['content'].trim();
       } else {
-        print('❌ OpenRouter error: ${response.statusCode} - ${response.body}');
+        print(' OpenRouter error: ${response.statusCode} - ${response.body}');
         return 'Xin lỗi, hiện tại tôi không thể trả lời. Vui lòng thử lại sau.';
       }
     } catch (e) {
-      print('❌ Exception when calling AI: $e');
+      print(' Exception when calling AI: $e');
       return 'Đã xảy ra lỗi kết nối. Vui lòng thử lại sau.';
     }
   }

@@ -126,7 +126,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 24),
                       Column(
                         children: [
-                          Image.asset('assets/a2.png', height: 100),
+                          Image.asset('assets/xoa.png', height: 100),
                           const SizedBox(height: 10),
                           const Text("SSKĐT",
                               style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white)),

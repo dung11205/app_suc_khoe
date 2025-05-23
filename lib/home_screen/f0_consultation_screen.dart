@@ -24,9 +24,7 @@ class _F0ConsultationScreenState extends State<F0ConsultationScreen> {
 
   Future<void> _startNewChat() async {
     final user = FirebaseAuth.instance.currentUser;
-    print('User UID in _startNewChat: ${user?.uid}');
     if (user == null) {
-      print('Người dùng chưa đăng nhập');
       setState(() {
         _messages.clear();
         _messages.add({
@@ -38,7 +36,6 @@ class _F0ConsultationScreenState extends State<F0ConsultationScreen> {
       return;
     }
 
-    // Tạo một document mới cho phiên chat
     final chatRef = await FirebaseFirestore.instance.collection('f0_consultations').add({
       'userId': user.uid,
       'createdAt': DateTime.now().toIso8601String(),
@@ -50,22 +47,20 @@ class _F0ConsultationScreenState extends State<F0ConsultationScreen> {
         'message': 'Tôi có thể giúp gì cho bạn?',
         'timestamp': DateTime.now().toIso8601String(),
         'userId': user.uid,
-        'chatId': chatRef.id, // Gắn chatId để liên kết tin nhắn với phiên
+        'chatId': chatRef.id,
       };
 
-      final docRef = await FirebaseFirestore.instance
+      await FirebaseFirestore.instance
           .collection('f0_consultations')
           .doc(chatRef.id)
           .collection('messages')
           .add(defaultBotMessage);
-      print('Tin nhắn mặc định đã được lưu với ID: ${docRef.id}');
 
       setState(() {
         _messages.clear();
         _messages.add(defaultBotMessage);
       });
     } catch (e) {
-      print('Lỗi khi khởi tạo chat mới: $e');
       setState(() {
         _messages.clear();
         _messages.add({
@@ -82,9 +77,7 @@ class _F0ConsultationScreenState extends State<F0ConsultationScreen> {
     if (text.isEmpty) return;
 
     final user = FirebaseAuth.instance.currentUser;
-    print('User UID in _sendMessage: ${user?.uid}');
     if (user == null) {
-      print('Người dùng chưa đăng nhập');
       setState(() {
         _messages.add({
           'sender': 'bot',
@@ -95,13 +88,11 @@ class _F0ConsultationScreenState extends State<F0ConsultationScreen> {
       return;
     }
 
-    // Lấy chatId của phiên chat hiện tại (giả sử chatId được lưu từ _startNewChat)
     String? chatId;
     if (_messages.isNotEmpty) {
       chatId = _messages.first['chatId'] as String?;
     }
     if (chatId == null) {
-      print('Không tìm thấy chatId, khởi tạo lại chat');
       await _startNewChat();
       chatId = _messages.first['chatId'] as String?;
     }
@@ -115,12 +106,11 @@ class _F0ConsultationScreenState extends State<F0ConsultationScreen> {
     };
 
     try {
-      final userDocRef = await FirebaseFirestore.instance
+      await FirebaseFirestore.instance
           .collection('f0_consultations')
           .doc(chatId)
           .collection('messages')
           .add(userMessage);
-      print('Tin nhắn người dùng đã được lưu với ID: ${userDocRef.id}');
 
       setState(() {
         _messages.add(userMessage);
@@ -139,18 +129,16 @@ class _F0ConsultationScreenState extends State<F0ConsultationScreen> {
           'chatId': chatId,
         };
 
-        final botDocRef = await FirebaseFirestore.instance
+        await FirebaseFirestore.instance
             .collection('f0_consultations')
             .doc(chatId)
             .collection('messages')
             .add(botMessage);
-        print('Tin nhắn bot đã được lưu với ID: ${botDocRef.id}');
 
         setState(() {
           _messages.add(botMessage);
         });
       } catch (e) {
-        print('Lỗi khi nhận phản hồi từ bot: $e');
         final errorMessage = {
           'sender': 'bot',
           'message': 'Xin lỗi, đã xảy ra lỗi khi tư vấn. Vui lòng thử lại sau.',
@@ -170,7 +158,6 @@ class _F0ConsultationScreenState extends State<F0ConsultationScreen> {
         });
       }
     } catch (e) {
-      print('Lỗi khi gửi tin nhắn: $e');
       setState(() {
         _messages.add({
           'sender': 'bot',
@@ -201,21 +188,30 @@ class _F0ConsultationScreenState extends State<F0ConsultationScreen> {
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        padding: const EdgeInsets.all(10),
-        constraints: const BoxConstraints(maxWidth: 300),
+        margin: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.all(12),
+        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7),
         decoration: BoxDecoration(
-          color: isUser ? Colors.blue[100] : Colors.grey[300],
-          borderRadius: BorderRadius.circular(12),
+          color: isUser ? Colors.lightBlue.shade100 : Colors.grey.shade200,
+          borderRadius: BorderRadius.only(
+            topLeft: const Radius.circular(12),
+            topRight: const Radius.circular(12),
+            bottomLeft: Radius.circular(isUser ? 12 : 0),
+            bottomRight: Radius.circular(isUser ? 0 : 12),
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(message['message'] ?? '',
-                style: const TextStyle(fontSize: 15)),
+            Text(
+              message['message'] ?? '',
+              style: const TextStyle(fontSize: 15),
+            ),
             const SizedBox(height: 4),
-            Text(timeFormatted,
-                style: const TextStyle(fontSize: 10, color: Colors.grey)),
+            Text(
+              timeFormatted,
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
+            ),
           ],
         ),
       ),
@@ -225,48 +221,87 @@ class _F0ConsultationScreenState extends State<F0ConsultationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Tư vấn sức khỏe F0')),
+      appBar: AppBar(
+        title: const Text('Tư vấn sức khỏe F0'),
+        centerTitle: true,
+        elevation: 1,
+      ),
       body: Column(
         children: [
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.all(12),
+              physics: const BouncingScrollPhysics(),
               itemCount: _messages.length,
-              itemBuilder: (context, index) =>
-                  _buildMessage(_messages[index]),
+              itemBuilder: (context, index) => _buildMessage(_messages[index]),
             ),
           ),
           if (_isLoading)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
-              child: CircularProgressIndicator(),
-            ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _messageController,
-                    textInputAction: TextInputAction.send,
-                    onSubmitted: (_) {
-                      if (!_isLoading) _sendMessage();
-                    },
-                    decoration: const InputDecoration(
-                      hintText: 'Nhập triệu chứng hoặc câu hỏi...',
-                      border: OutlineInputBorder(),
-                    ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  margin: const EdgeInsets.only(left: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        'Đang phản hồi...',
+                        style: TextStyle(fontSize: 13, color: Colors.black54),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: const Icon(Icons.send),
-                  onPressed: _isLoading ? null : _sendMessage,
-                  color: Theme.of(context).primaryColor,
-                )
-              ],
+              ),
             ),
-          ),
+          SafeArea(
+            top: false,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+              color: Colors.grey[100],
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _messageController,
+                      textInputAction: TextInputAction.send,
+                      onSubmitted: (_) {
+                        if (!_isLoading) _sendMessage();
+                      },
+                      decoration: InputDecoration(
+                        hintText: 'Nhập triệu chứng hoặc câu hỏi...',
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.send),
+                    onPressed: _isLoading ? null : _sendMessage,
+                    color: Theme.of(context).primaryColor,
+                  )
+                ],
+              ),
+            ),
+          )
         ],
       ),
     );

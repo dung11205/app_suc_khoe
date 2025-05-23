@@ -1,0 +1,9 @@
+{
+  "@@locale": "en",
+  "settings": "Settings",
+  "language": "Language",
+  "vietnamese": "Vietnamese",
+  "english": "English",
+  "darkMode": "Dark Mode",
+  "appTitle": "Health Tracking App"
+}

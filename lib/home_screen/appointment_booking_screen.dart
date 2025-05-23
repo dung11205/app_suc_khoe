@@ -39,7 +39,7 @@ class AppointmentBookingScreen extends StatelessWidget {
                     prefixIcon: Icon(Icons.person),
                   ),
                   validator: (value) =>
-                      value == null || value.trim().isEmpty ? "Không được bỏ trống" : null,
+                      value == null || value.trim().isEmpty ? "Không ược bỏ trống" : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(

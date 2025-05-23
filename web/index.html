@@ -1,56 +1,97 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
-  <base href="$FLUTTER_BASE_HREF">
-
+  <base href="/">
   <meta charset="UTF-8">
-  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge">
   <meta name="description" content="A new Flutter project.">
-
-  <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="health_apps">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
-
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
-
+  <link rel="icon" type="image/png" href="favicon.png">
   <title>health_apps</title>
   <link rel="manifest" href="manifest.json">
 
   <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js"></script>
-
-  <!-- Firebase Configuration -->
-  <script>
-    const firebaseConfig = {
-      apiKey: "your-web-api-key",
-      authDomain: "your-project-id.firebaseapp.com",
-      projectId: "your-project-id",
-      storageBucket: "your-project-id.appspot.com",
-      messagingSenderId: "your-messaging-sender-id",
-      appId: "your-web-app-id"
-    };
-    firebase.initializeApp(firebaseConfig);
-  </script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-messaging.js"></script>
 </head>
 <body>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAteDHCR0gPbkxIPQyql0UfAwTDZ518fKI",
+      authDomain: "health-apps-16496.firebaseapp.com",
+      projectId: "health-apps-16496",
+      storageBucket: "health-apps-16496.appspot.com",
+      messagingSenderId: "938119019838",
+      appId: "1:938119019838:web:9ac6f253c41dd727265406f"
+    };
+
+    // 1. Init Firebase
+    firebase.initializeApp(firebaseConfig);
+
+    // 2. Init dịch vụ
+    const auth = firebase.auth();
+    const messaging = firebase.messaging();
+
+    // 3. Yêu cầu quyền
+    Notification.requestPermission().then((permission) => {
+      console.log('🔔 Notification permission:', permission);
+    });
+
+    // 4. Đăng nhập ẩn danh trước khi getToken
+    auth.signInAnonymously()
+      .then(() => {
+        console.log('✅ Đăng nhập ẩn danh thành công');
+
+        // 5. Đăng ký Service Worker
+        navigator.serviceWorker.register('/firebase-messaging-sw.js')
+          .then((registration) => {
+            console.log('✅ Đã đăng ký Service Worker:', registration.scope);
+
+            // 6. Lấy token FCM
+            messaging.getToken({
+              vapidKey: "BKYrCx-0NH4OeNMEdZr2lhxVg38wzB_wh6atgWReC-fPlI_jOYTWSunOsm6wAZR5yZoTdtElOkT3c37Z4ow-Rg0",
+              serviceWorkerRegistration: registration
+            }).then((token) => {
+              if (token) {
+                console.log('🔥 Token FCM:', token);
+
+                // 7. In token ra trang (tùy chọn)
+                document.body.insertAdjacentHTML('beforeend',
+                  `<p style="padding:10px;font-size:13px;color:#007bff">Token FCM:<br><code>${token}</code></p>`);
+              } else {
+                console.warn('⚠️ Không nhận được token');
+              }
+            }).catch((err) => {
+              console.error('❌ Lỗi khi getToken:', err);
+            });
+
+          }).catch((err) => {
+            console.error('❌ Lỗi đăng ký service worker:', err);
+          });
+
+      })
+      .catch((err) => {
+        console.error('❌ Đăng nhập ẩn danh thất bại:', err);
+      });
+
+    // 8. Lắng nghe foreground
+    messaging.onMessage((payload) => {
+      console.log('📨 Foreground:', payload);
+      const title = payload.notification?.title;
+      const options = {
+        body: payload.notification?.body,
+        icon: '/icons/Icon-192.png'
+      };
+      if (title) {
+        new Notification(title, options);
+      }
+    });
+  </script>
+
   <script src="flutter_bootstrap.js" async></script>
   <script src="/flutter.js" defer></script>
 </body>

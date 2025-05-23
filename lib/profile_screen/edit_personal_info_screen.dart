@@ -5,7 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-import '../services/user_service.dart'; // Import UserService
+import '../services/user_service.dart';
 
 class EditPersonalInfoScreen extends StatefulWidget {
   const EditPersonalInfoScreen({super.key});
@@ -23,7 +23,7 @@ class _EditPersonalInfoScreenState extends State<EditPersonalInfoScreen> {
   final _emailController = TextEditingController();
   final _ageController = TextEditingController();
   final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
-  final UserService _userService = UserService(); // Khởi tạo UserService
+  final UserService _userService = UserService();
   String? _selectedGender;
   bool _isSaving = false;
   File? _avatarFile;
@@ -54,8 +54,8 @@ class _EditPersonalInfoScreenState extends State<EditPersonalInfoScreen> {
         _phoneController.text = userData['phone'] ?? '';
         _idController.text = userData['id'] ?? '';
         _emailController.text = userData['email'] ?? '';
-        _ageController.text = userData['age']?.toString() ?? '';
         _originalEmail = _emailController.text;
+        _ageController.text = userData['age']?.toString() ?? '';
         _selectedGender = userData['gender'];
         _avatarBase64 = userData['avatar'];
       });
@@ -165,46 +165,26 @@ class _EditPersonalInfoScreenState extends State<EditPersonalInfoScreen> {
       return;
     }
 
-    final newEmail = _emailController.text.trim();
-
     try {
-      if (newEmail != _originalEmail) {
-        // Gửi email xác minh cho email mới
-        await user.verifyBeforeUpdateEmail(newEmail);
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Vui lòng kiểm tra email mới để xác minh trước khi lưu.'),
-            ),
-          );
-        }
-        setState(() => _isSaving = false);
-        return; // Chờ người dùng xác minh email trước khi lưu toàn bộ thông tin
-      }
-
-      // Dữ liệu cần lưu
       final userData = {
         'name': _nameController.text.trim(),
         'dob': _dobController.text.trim(),
         'phone': _phoneController.text.trim(),
         'id': _idController.text.trim(),
-        'email': newEmail,
+        'email': _originalEmail,
         'age': _ageController.text.trim(),
         'gender': _selectedGender,
         'avatar': _avatarBase64,
       };
 
-      // Sử dụng UserService để lưu thông tin vào Firestore
       await _userService.updateUserData(user.uid, userData);
-
-      // Cập nhật displayName trong Firebase Auth
       await user.updateDisplayName(_nameController.text.trim());
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Đã lưu thông tin cá nhân thành công')),
         );
-        Navigator.pop(context, true); // Trả về true để báo hiệu lưu thành công
+        Navigator.pop(context, true);
       }
     } catch (e) {
       if (context.mounted) {
@@ -215,6 +195,48 @@ class _EditPersonalInfoScreenState extends State<EditPersonalInfoScreen> {
     } finally {
       setState(() => _isSaving = false);
     }
+  }
+
+  Widget _buildTextFormField(
+    TextEditingController controller,
+    String label, {
+    bool readOnly = false,
+    IconData? suffixIcon,
+    Function()? onTap,
+    TextInputType? keyboardType,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      readOnly: readOnly,
+      keyboardType: keyboardType,
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        filled: true,
+        fillColor: Colors.white,
+        suffixIcon: suffixIcon != null ? Icon(suffixIcon) : null,
+      ),
+      onTap: onTap,
+      validator: validator,
+    );
+  }
+
+  Widget _buildGenderDropdown() {
+    return DropdownButtonFormField<String>(
+      value: _selectedGender,
+      decoration: InputDecoration(
+        labelText: 'Giới tính',
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        filled: true,
+        fillColor: Colors.white,
+      ),
+      items: ['Nam', 'Nữ', 'Khác']
+          .map((gender) => DropdownMenuItem(value: gender, child: Text(gender)))
+          .toList(),
+      onChanged: (value) => setState(() => _selectedGender = value),
+      validator: (value) => value == null ? 'Vui lòng chọn giới tính' : null,
+    );
   }
 
   @override
@@ -264,7 +286,6 @@ class _EditPersonalInfoScreenState extends State<EditPersonalInfoScreen> {
                 readOnly: true,
                 suffixIcon: Icons.calendar_today,
                 onTap: () => _selectDate(context),
-                validator: _validateDob,
               ),
               const SizedBox(height: 12),
               _buildTextFormField(
@@ -272,25 +293,19 @@ class _EditPersonalInfoScreenState extends State<EditPersonalInfoScreen> {
                 'Tuổi',
                 readOnly: true,
                 keyboardType: TextInputType.number,
-                validator: _validateAge,
               ),
               const SizedBox(height: 12),
               _buildGenderDropdown(),
               const SizedBox(height: 12),
-              _buildTextFormField(
-                _phoneController,
-                'Số điện thoại',
-                keyboardType: TextInputType.phone,
-                validator: _validatePhone,
-              ),
+              _buildTextFormField(_phoneController, 'Số điện thoại'),
               const SizedBox(height: 12),
-              _buildTextFormField(_idController, 'Số CCCD/Hộ chiếu', validator: _validateId),
+              _buildTextFormField(_idController, 'Số CCCD/Hộ chiếu'),
               const SizedBox(height: 12),
               _buildTextFormField(
                 _emailController,
-                'Email (Gmail)',
-                keyboardType: TextInputType.emailAddress,
-                validator: _validateEmail,
+                'Email (không chỉnh sửa)',
+                readOnly: true,
+                suffixIcon: Icons.lock,
               ),
               const SizedBox(height: 24),
               _isSaving
@@ -316,83 +331,6 @@ class _EditPersonalInfoScreenState extends State<EditPersonalInfoScreen> {
     if (value == null || value.isEmpty) return 'Vui lòng nhập họ và tên';
     if (value.trim().length < 2) return 'Họ và tên phải có ít nhất 2 ký tự';
     return null;
-  }
-
-  String? _validateDob(String? value) {
-    if (value == null || value.isEmpty) return 'Vui lòng chọn ngày sinh';
-    try {
-      _dateFormat.parseStrict(value);
-      return null;
-    } catch (e) {
-      return 'Định dạng ngày sinh không hợp lệ';
-    }
-  }
-
-  String? _validateAge(String? value) {
-    if (value == null || value.isEmpty) return 'Vui lòng chọn ngày sinh để tính tuổi';
-    if (int.tryParse(value) == null || int.parse(value) <= 0) return 'Tuổi không hợp lệ';
-    return null;
-  }
-
-  String? _validatePhone(String? value) {
-    if (value == null || value.isEmpty) return 'Vui lòng nhập số điện thoại';
-    if (!RegExp(r'^\d{10}$').hasMatch(value)) return 'Số điện thoại phải có 10 chữ số';
-    return null;
-  }
-
-  String? _validateId(String? value) {
-    if (value == null || value.isEmpty) return 'Vui lòng nhập số CCCD/Hộ chiếu';
-    if (!RegExp(r'^\d{9,12}$').hasMatch(value)) return 'Số CCCD/Hộ chiếu không hợp lệ';
-    return null;
-  }
-
-  String? _validateEmail(String? value) {
-    if (value == null || value.isEmpty) return 'Vui lòng nhập email';
-    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) return 'Email không hợp lệ';
-    if (!value.endsWith('@gmail.com')) return 'Vui lòng sử dụng email Gmail';
-    return null;
-  }
-
-  Widget _buildTextFormField(
-    TextEditingController controller,
-    String label, {
-    bool readOnly = false,
-    IconData? suffixIcon,
-    Function()? onTap,
-    TextInputType? keyboardType,
-    String? Function(String?)? validator,
-  }) {
-    return TextFormField(
-      controller: controller,
-      readOnly: readOnly,
-      keyboardType: keyboardType,
-      decoration: InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-        filled: true,
-        fillColor: Colors.white,
-        suffixIcon: suffixIcon != null ? Icon(suffixIcon) : null,
-      ),
-      onTap: onTap,
-      validator: validator ?? (value) => value == null || value.isEmpty ? 'Vui lòng nhập $label' : null,
-    );
-  }
-
-  Widget _buildGenderDropdown() {
-    return DropdownButtonFormField<String>(
-      value: _selectedGender,
-      decoration: InputDecoration(
-        labelText: 'Giới tính',
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-        filled: true,
-        fillColor: Colors.white,
-      ),
-      items: ['Nam', 'Nữ', 'Khác']
-          .map((gender) => DropdownMenuItem(value: gender, child: Text(gender)))
-          .toList(),
-      onChanged: (value) => setState(() => _selectedGender = value),
-      validator: (value) => value == null ? 'Vui lòng chọn giới tính' : null,
-    );
   }
 
   @override

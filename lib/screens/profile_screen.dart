@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../profile_screen/setting.dart'; // <-- import SettingScreen
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -11,8 +12,8 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  String? _avatarBase64; // Lưu ảnh đại diện dưới dạng Base64
-  String? _name; // Lưu tên người dùng
+  String? _avatarBase64;
+  String? _name;
 
   @override
   void initState() {
@@ -20,13 +21,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _loadUserData();
   }
 
-  // Tải thông tin người dùng từ Firestore
   Future<void> _loadUserData() async {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user != null) {
       try {
-        final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
         final data = doc.data();
 
         setState(() {
@@ -70,7 +73,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: Colors.grey[200],
       body: Column(
         children: [
-          // Header gradient
+          // Header
           Container(
             width: double.infinity,
             decoration: const BoxDecoration(
@@ -92,12 +95,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             child: Row(
               children: [
-                // Hiển thị ảnh đại diện
                 CircleAvatar(
                   radius: 30,
                   backgroundImage: avatarImage,
                   child: avatarImage == null
-                      ? const Icon(Icons.person, size: 35, color: Colors.blueAccent)
+                      ? const Icon(Icons.person, size: 35, color: Colors.white)
                       : null,
                 ),
                 const SizedBox(width: 16),
@@ -161,20 +163,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
 
-          // Menu cá nhân
+          // Menu
           Expanded(
             child: Container(
               margin: const EdgeInsets.only(top: 16),
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: ListView.separated(
                 itemCount: _menuItems.length,
-                separatorBuilder: (context, index) => const Divider(height: 1),
+                separatorBuilder: (context, index) =>
+                    const Divider(height: 1),
                 itemBuilder: (context, index) {
                   final item = _menuItems[index];
                   return ListTile(
                     leading: Icon(item.icon, color: Colors.grey[700]),
                     title: Text(item.title),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    trailing:
+                        const Icon(Icons.arrow_forward_ios, size: 16),
                     onTap: () {
                       switch (item.title) {
                         case 'Thông tin cá nhân':
@@ -195,14 +199,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         case 'Giới thiệu':
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('Chức năng Giới thiệu chưa được triển khai'),
+                              content:
+                                  Text('Chức năng Giới thiệu chưa được triển khai'),
                             ),
                           );
                           break;
                         case 'Cài đặt':
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Chức năng Cài đặt chưa được triển khai'),
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const SettingScreen(),
                             ),
                           );
                           break;
